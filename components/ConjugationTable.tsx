@@ -107,7 +107,7 @@ export default function ConjugationTable({
         <div className="divide-y divide-cream-200">
           {PRONOUNS.map(pronoun => (
             <div key={pronoun} className="flex items-center px-4 py-3">
-              <span className="w-28 text-sm text-navy-400 font-medium">
+              <span className="w-24 text-xs text-navy-400 font-medium">
                 {pronoun}
               </span>
               <span className="text-sm font-semibold text-navy-900 tracking-wide">
@@ -151,13 +151,13 @@ export default function ConjugationTable({
               )}
             >
               {/* Pronoun label */}
-              <span className="w-28 text-sm font-medium text-navy-500 flex-shrink-0">
+              <span className="w-24 text-xs font-medium text-navy-500 flex-shrink-0">
                 {pronoun}
               </span>
 
               {/* Input or display */}
               {isCurrent ? (
-                <div className="flex-1 flex items-center gap-2">
+                <div className="flex-1 flex flex-col gap-2 min-w-0">
                   <input
                     ref={el => { inputRefs.current[pronoun] = el }}
                     type="text"
@@ -170,7 +170,7 @@ export default function ConjugationTable({
                     disabled={state.status !== 'idle'}
                     placeholder="conjugar…"
                     className={cn(
-                      'flex-1 rounded-lg border px-3 py-1.5 text-sm font-medium tracking-wide focus:outline-none focus:ring-2 transition-all',
+                      'w-full rounded-lg border px-3 py-2 text-sm font-medium tracking-wide focus:outline-none focus:ring-2 transition-all',
                       state.status === 'idle' && 'border-navy-300 focus:border-terracotta-400 focus:ring-terracotta-100',
                       state.status === 'correct' && 'border-green-400 bg-green-50 text-green-800 focus:ring-green-100',
                       state.status === 'incorrect' && 'border-red-400 bg-red-50 text-red-800',
@@ -180,24 +180,24 @@ export default function ConjugationTable({
                     autoCapitalize="off"
                     spellCheck={false}
                   />
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     <button
                       onClick={handleCheck}
                       disabled={!state.value || state.status !== 'idle'}
-                      className="btn-primary py-1.5 px-3 text-xs"
+                      className="btn-terracotta flex-1 py-2 text-xs"
                     >
                       Check →
                     </button>
                     <button
                       onClick={handleReveal}
-                      className="btn-ghost py-1.5 px-2 text-xs"
+                      className="btn-ghost py-2 px-3 text-xs"
                     >
                       Reveal
                     </button>
                   </div>
                 </div>
               ) : isPast ? (
-                <div className="flex-1 flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2 min-w-0">
                   <span
                     className={cn(
                       'text-sm font-semibold tracking-wide',

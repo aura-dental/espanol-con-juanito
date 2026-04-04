@@ -26,8 +26,8 @@ export default function Phase4ContextualSentences({
   onComplete,
   showSignalWords,
 }: Phase4ContextualSentencesProps) {
-  // Build exercise list: 4 regular + 2 contrast pairs for past tenses
-  const exercises = buildExerciseList(tenseData)
+  // Build exercise list once — using lazy useState so Math.random() only runs on mount
+  const [exercises] = useState<ExerciseItem[]>(() => buildExerciseList(tenseData))
   const [currentIndex, setCurrentIndex] = useState(0)
   const [input, setInput] = useState('')
   const [answerState, setAnswerState] = useState<AnswerState>('idle')
@@ -143,23 +143,39 @@ export default function Phase4ContextualSentences({
     const expected = which === 'indefinido' ? pair.indefinidoExpected : pair.imperfectoExpected
     const context = which === 'indefinido' ? pair.indefinidoContext : pair.imperfectoContext
 
+    const tenseLabel = which === 'indefinido' ? 'indefinido' : 'imperfecto'
+
     return (
-      <ExerciseCard
-        pronoun={pair.pronoun}
-        verb={pair.verb}
-        sentenceFrame={sentenceFrame}
-        expected={expected}
-        input={input}
-        answerState={answerState}
-        showFeedback={showFeedback}
-        feedback={context}
-        comparisonNote={showFeedback ? pair.comparisonNote : undefined}
-        onInputChange={setInput}
-        onKeyDown={handleKeyDown}
-        onCheck={handleCheck}
-        onNext={handleNext}
-        isContrastPair={true}
-      />
+      <div className="space-y-3">
+        {/* Contrast drill explanation banner */}
+        <div className="rounded-xl bg-terracotta-50 border border-terracotta-200 px-4 py-3">
+          <p className="text-xs font-bold text-terracotta-700 uppercase tracking-wider mb-1">
+            ⚡ Contrast Drill — {pair.verb}
+          </p>
+          <p className="text-xs text-navy-600 leading-relaxed">
+            Same verb, two different moments. This sentence uses the{' '}
+            <strong className="text-terracotta-700">{tenseLabel}</strong>.
+            The context tells you which — read carefully.
+          </p>
+        </div>
+
+        <ExerciseCard
+          pronoun={pair.pronoun}
+          verb={pair.verb}
+          sentenceFrame={sentenceFrame}
+          expected={expected}
+          input={input}
+          answerState={answerState}
+          showFeedback={showFeedback}
+          feedback={context}
+          comparisonNote={showFeedback ? pair.comparisonNote : undefined}
+          onInputChange={setInput}
+          onKeyDown={handleKeyDown}
+          onCheck={handleCheck}
+          onNext={handleNext}
+          isContrastPair={true}
+        />
+      </div>
     )
   }
 
@@ -259,12 +275,6 @@ function ExerciseCard({
       answerState === 'correct' && 'border-green-300',
       answerState === 'incorrect' && 'border-red-300',
     )}>
-      {isContrastPair && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-terracotta-50 text-terracotta-600">
-          contrast drill
-        </span>
-      )}
-
       {/* Verb prompt */}
       <div className="flex items-center gap-2 text-sm text-navy-500">
         <span className="font-mono bg-cream-100 px-2 py-0.5 rounded text-navy-700">{pronoun}</span>
@@ -273,7 +283,7 @@ function ExerciseCard({
       </div>
 
       {/* Sentence frame with inline input */}
-      <div className="flex flex-wrap items-center gap-1.5 text-navy-800 text-[15px] leading-relaxed">
+      <div className="text-navy-800 text-[15px] leading-relaxed">
         {parts[0] && <span>{parts[0]}</span>}
         <input
           type="text"
@@ -283,8 +293,8 @@ function ExerciseCard({
           disabled={answerState !== 'idle'}
           placeholder="______"
           className={cn(
-            'border-b-2 bg-transparent px-1 py-0.5 text-center font-semibold tracking-wide focus:outline-none transition-colors',
-            'min-w-[90px]',
+            'inline-block border-b-2 bg-transparent px-1 py-0.5 text-center font-semibold tracking-wide focus:outline-none transition-colors mx-1',
+            'min-w-[80px] max-w-[160px] w-[120px]',
             answerState === 'idle' && 'border-navy-300 focus:border-terracotta-400',
             answerState === 'correct' && 'border-green-400 text-green-700',
             answerState === 'incorrect' && 'border-red-400 text-red-600',
@@ -293,7 +303,6 @@ function ExerciseCard({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          style={{ width: `${Math.max(expected.length * 10 + 20, 90)}px` }}
         />
         {parts[1] && <span>{parts[1]}</span>}
       </div>

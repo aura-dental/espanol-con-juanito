@@ -207,13 +207,28 @@ export default function SessionPage() {
     <div className="min-h-screen bg-cream-100">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-white border-b border-cream-200 px-4 py-3">
-        <div className="max-w-lg mx-auto">
-          <PhaseProgress
-            currentPhase={isComplete ? 'grammar' : currentPhase}
-            completedPhases={(session.phase_completed || []) as PhaseKey[]}
-            sessionNumber={dayNumber}
-            tenseName={getTenseName(tenseId)}
-          />
+        <div className="max-w-lg mx-auto flex items-center gap-2">
+          <div className="flex-1">
+            <PhaseProgress
+              currentPhase={isComplete ? 'grammar' : currentPhase}
+              completedPhases={(session.phase_completed || []) as PhaseKey[]}
+              sessionNumber={dayNumber}
+              tenseName={getTenseName(tenseId)}
+            />
+          </div>
+          {!isComplete && (
+            <button
+              onClick={() => {
+                if (window.confirm('End this session early and go to dashboard?')) {
+                  router.push('/dashboard')
+                }
+              }}
+              className="flex-shrink-0 text-xs text-navy-400 hover:text-navy-600 px-2 py-1 rounded-lg hover:bg-cream-100 transition-colors"
+              title="End session early"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </header>
 

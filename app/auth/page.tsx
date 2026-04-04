@@ -1,40 +1,74 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import JuanitoAvatar from '@/components/JuanitoAvatar'
+import { cn } from '@/lib/utils'
 
 export default function AuthPage() {
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  const [digits, setDigits] = useState(['', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null])
 
-  const supabase = createClient()
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handlePinSubmit(pin: string) {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    try {
+      const res = await fetch('/api/auth/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin }),
+      })
 
-    if (error) {
-      setError(error.message)
-    } else {
-      setSent(true)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError('Incorrect PIN — try again')
+        setDigits(['', '', '', ''])
+        inputRefs.current[0]?.focus()
+        setLoading(false)
+        return
+      }
+
+      // Follow the generated magic link — Supabase verifies it and sends us to /auth/callback
+      window.location.href = data.action_link
+    } catch {
+      setError('Something went wrong — try again')
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
+  function handleChange(i: number, val: string) {
+    const digit = val.replace(/\D/g, '').slice(-1)
+    const next = [...digits]
+    next[i] = digit
+    setDigits(next)
+    setError(null)
+
+    if (digit && i < 3) {
+      inputRefs.current[i + 1]?.focus()
+    }
+
+    if (digit && i === 3) {
+      handlePinSubmit(next.join(''))
+    }
+  }
+
+  function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) {
+      const next = [...digits]
+      next[i - 1] = ''
+      setDigits(next)
+      inputRefs.current[i - 1]?.focus()
+    }
+  }
+
+  const filled = digits.filter(Boolean).length
+
   return (
-    <div className="min-h-screen bg-cream-100 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-cream-100 flex flex-col items-center justify-center p-6 overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-terracotta-100 opacity-30 blur-3xl" />
@@ -42,7 +76,7 @@ export default function AuthPage() {
       </div>
 
       <div className="relative w-full max-w-sm">
-        {/* Logo / header */}
+        {/* Logo */}
         <div className="text-center mb-10">
           <div className="flex justify-center mb-5">
             <JuanitoAvatar size="lg" animated />
@@ -55,73 +89,58 @@ export default function AuthPage() {
           </p>
         </div>
 
-        {!sent ? (
-          <div className="card p-8">
-            <h2 className="text-lg font-semibold text-navy-900 mb-1">
-              Bienvenido de vuelta
-            </h2>
-            <p className="text-sm text-navy-500 mb-6">
-              Enter your email and we'll send you a magic link — no password needed.
-            </p>
+        <div className="card p-8">
+          <h2 className="text-lg font-semibold text-navy-900 mb-1 text-center">
+            Bienvenido de vuelta
+          </h2>
+          <p className="text-sm text-navy-500 mb-8 text-center">
+            Enter your PIN to continue
+          </p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-navy-700 mb-1.5"
-                >
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="input"
-                  required
-                  autoFocus
-                />
-              </div>
-
-              {error && (
-                <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || !email}
-                className="btn-terracotta w-full"
-              >
-                {loading ? 'Sending…' : 'Send magic link →'}
-              </button>
-            </form>
-
-            <p className="mt-6 text-xs text-center text-navy-400">
-              New here? Just enter your email and we'll set everything up automatically.
-            </p>
+          {/* PIN boxes */}
+          <div className="flex justify-center gap-3 mb-6">
+            {digits.map((digit, i) => (
+              <input
+                key={i}
+                ref={el => { inputRefs.current[i] = el }}
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={1}
+                value={digit ? '●' : ''}
+                onChange={e => handleChange(i, e.target.value.replace('●', ''))}
+                onKeyDown={e => handleKeyDown(i, e)}
+                onFocus={e => e.target.select()}
+                disabled={loading}
+                className={cn(
+                  'w-14 h-14 text-center text-2xl font-bold rounded-xl border-2 transition-all focus:outline-none bg-white',
+                  digit
+                    ? 'border-terracotta-400 text-terracotta-600'
+                    : 'border-cream-300 text-transparent',
+                  error && 'border-red-400',
+                  loading && 'opacity-50',
+                )}
+                autoComplete="off"
+              />
+            ))}
           </div>
-        ) : (
-          <div className="card p-8 text-center">
-            <div className="text-4xl mb-4">📬</div>
-            <h2 className="text-lg font-semibold text-navy-900 mb-2">
-              Check your inbox
-            </h2>
-            <p className="text-sm text-navy-500 mb-6">
-              We've sent a magic link to <strong>{email}</strong>. Click it to sign in — valid for 1 hour.
-            </p>
-            <button
-              onClick={() => { setSent(false); setEmail('') }}
-              className="btn-ghost text-sm"
-            >
-              ← Use a different email
-            </button>
-          </div>
-        )}
 
-        {/* Tagline */}
+          {error && (
+            <p className="text-sm text-red-600 text-center mb-4">{error}</p>
+          )}
+
+          <button
+            onClick={() => {
+              const pin = digits.join('')
+              if (pin.length === 4) handlePinSubmit(pin)
+            }}
+            disabled={filled < 4 || loading}
+            className="btn-terracotta w-full"
+          >
+            {loading ? 'Signing in…' : 'Sign in →'}
+          </button>
+        </div>
+
         <p className="text-center text-xs text-navy-400 mt-8">
           20 minutes a day. 90 days. Mastery.
         </p>
